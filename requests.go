@@ -1,7 +1,6 @@
 package gowebdav
 
 import (
-	"bytes"
 	"io"
 	"log"
 	"net/http"
@@ -10,33 +9,9 @@ import (
 )
 
 func (c *Client) req(method, path string, body io.Reader, intercept func(*http.Request)) (req *http.Response, err error) {
-	var r *http.Request
-	var retryBuf io.Reader
-
-	if body != nil {
-		// If the authorization fails, we will need to restart reading
-		// from the passed body stream.
-		// When body is seekable, use seek to reset the streams
-		// cursor to the start.
-		// Otherwise, copy the stream into a buffer while uploading
-		// and use the buffers content on retry.
-		if sk, ok := body.(io.Seeker); ok {
-			if _, err = sk.Seek(0, io.SeekStart); err != nil {
-				return
-			}
-			retryBuf = body
-		} else {
-			buff := &bytes.Buffer{}
-			retryBuf = buff
-			body = io.TeeReader(body, buff)
-		}
-		r, err = http.NewRequest(method, PathEscape(Join(c.root, path)), body)
-	} else {
-		r, err = http.NewRequest(method, PathEscape(Join(c.root, path)), nil)
-	}
-
+	r, err := http.NewRequest(method, PathEscape(Join(c.root, path)), body)
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	for k, vals := range c.headers {
@@ -66,25 +41,7 @@ func (c *Client) req(method, path string, body io.Reader, intercept func(*http.R
 		return nil, err
 	}
 
-	if rs.StatusCode == 401 && auth.Type() == "NoAuth" {
-		wwwAuthenticateHeader := strings.ToLower(rs.Header.Get("Www-Authenticate"))
-
-		if strings.Index(wwwAuthenticateHeader, "digest") > -1 {
-			c.authMutex.Lock()
-			c.auth = &DigestAuth{auth.User(), auth.Pass(), digestParts(rs)}
-			c.authMutex.Unlock()
-		} else if strings.Index(wwwAuthenticateHeader, "basic") > -1 {
-			c.authMutex.Lock()
-			c.auth = &BasicAuth{auth.User(), auth.Pass()}
-			c.authMutex.Unlock()
-		} else {
-			return rs, newPathError("Authorize", c.root, rs.StatusCode)
-		}
-
-		// retryBuf will be nil if body was nil initially so no check
-		// for body == nil is required here.
-		return c.req(method, path, retryBuf, intercept)
-	} else if rs.StatusCode == 401 {
+	if rs.StatusCode == 401 {
 		return rs, newPathError("Authorize", c.root, rs.StatusCode)
 	}
 

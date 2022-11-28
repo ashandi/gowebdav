@@ -25,9 +25,11 @@ type Client struct {
 	auth      Authenticator
 }
 
+type AuthenticatorType string
+
 // Authenticator stub
 type Authenticator interface {
-	Type() string
+	Type() AuthenticatorType
 	User() string
 	Pass() string
 	Authorize(*http.Request, string, string)
@@ -39,9 +41,11 @@ type NoAuth struct {
 	pw   string
 }
 
+const AuthenticatorTypeNoAuth AuthenticatorType = "NoAuth"
+
 // Type identifies the authenticator
-func (n *NoAuth) Type() string {
-	return "NoAuth"
+func (n *NoAuth) Type() AuthenticatorType {
+	return AuthenticatorTypeNoAuth
 }
 
 // User returns the current user
@@ -59,8 +63,19 @@ func (n *NoAuth) Authorize(req *http.Request, method string, path string) {
 }
 
 // NewClient creates a new instance of client
-func NewClient(uri, user, pw string) *Client {
-	return &Client{FixSlash(uri), make(http.Header), nil, &http.Client{}, sync.Mutex{}, &NoAuth{user, pw}}
+func NewClient(uri, user, pw string, authType AuthenticatorType) *Client {
+	var auth Authenticator
+
+	switch authType {
+	case AuthenticatorBasicAuth:
+		auth = &BasicAuth{user, pw}
+	case AuthenticatorTypeDigestAuth:
+		auth = &DigestAuth{user, pw, nil}
+	default:
+		auth = &NoAuth{user, pw}
+	}
+
+	return &Client{FixSlash(uri), make(http.Header), nil, &http.Client{}, sync.Mutex{}, auth}
 }
 
 // SetHeader lets us set arbitrary headers for a given client

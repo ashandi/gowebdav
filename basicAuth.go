@@ -11,9 +11,11 @@ type BasicAuth struct {
 	pw   string
 }
 
+const AuthenticatorBasicAuth AuthenticatorType = "BasicAuth"
+
 // Type identifies the BasicAuthenticator
-func (b *BasicAuth) Type() string {
-	return "BasicAuth"
+func (b *BasicAuth) Type() AuthenticatorType {
+	return AuthenticatorBasicAuth
 }
 
 // User holds the BasicAuth username

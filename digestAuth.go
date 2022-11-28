@@ -17,9 +17,11 @@ type DigestAuth struct {
 	digestParts map[string]string
 }
 
+const AuthenticatorTypeDigestAuth AuthenticatorType = "DigestAuth"
+
 // Type identifies the DigestAuthenticator
-func (d *DigestAuth) Type() string {
-	return "DigestAuth"
+func (d *DigestAuth) Type() AuthenticatorType {
+	return AuthenticatorTypeDigestAuth
 }
 
 // User holds the DigestAuth username
