@@ -91,6 +91,20 @@ func (c *Client) req(method, path string, body io.Reader, intercept func(*http.R
 	return rs, err
 }
 
+func (c *Client) iscol(path string) (res bool, err error) {
+	rs, err := c.req("GET", strings.TrimSuffix(path, "/"), nil, nil)
+	if err != nil {
+		return
+	}
+	defer rs.Body.Close()
+
+	if rs.StatusCode == 200 {
+		res = true
+	}
+
+	return
+}
+
 func (c *Client) mkcol(path string) (status int, err error) {
 	rs, err := c.req("MKCOL", path, nil, nil)
 	if err != nil {

@@ -276,6 +276,11 @@ func (c *Client) RemoveAll(path string) error {
 // Mkdir makes a directory
 func (c *Client) Mkdir(path string, _ os.FileMode) (err error) {
 	path = FixSlashes(path)
+
+	if exist, err := c.iscol(path); exist || err != nil {
+		return err
+	}
+
 	status, err := c.mkcol(path)
 	if err != nil {
 		return
@@ -290,6 +295,11 @@ func (c *Client) Mkdir(path string, _ os.FileMode) (err error) {
 // MkdirAll like mkdir -p, but for webdav
 func (c *Client) MkdirAll(path string, _ os.FileMode) (err error) {
 	path = FixSlashes(path)
+
+	if exist, err := c.iscol(path); exist || err != nil {
+		return err
+	}
+
 	status, err := c.mkcol(path)
 	if err != nil {
 		return
